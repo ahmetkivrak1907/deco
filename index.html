@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deco, an AI People Ops Teammate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout: narrow editorial column for the story, one wide working demo in the middle. Ink on cool grey, amber accent for "human decides" moments. */
+:root {
+  --bg: #eef0f3;
+  --surface: #ffffff;
+  --ink: #1b2230;
+  --muted: #5d6677;
+  --line: #d7dbe3;
+  --accent: #c7710f;
+  --accent-soft: #fbefdf;
+  --ok: #217a52;
+  --ok-soft: #e2f3ea;
+  --crit: #b23a3a;
+  --crit-soft: #f8e4e4;
+  --f-display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12161d; --surface: #1b2029; --ink: #e8ebf0; --muted: #9aa3b2; --line: #2e3542;
+    --accent: #f0a043; --accent-soft: #3a2a15; --ok: #5cc595; --ok-soft: #173326; --crit: #ef7d7d; --crit-soft: #3a1d1d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12161d; --surface: #1b2029; --ink: #e8ebf0; --muted: #9aa3b2; --line: #2e3542;
+  --accent: #f0a043; --accent-soft: #3a2a15; --ok: #5cc595; --ok-soft: #173326; --crit: #ef7d7d; --crit-soft: #3a1d1d;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 400 17px/1.6 var(--f-body); }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 56px 20px 80px; display: grid; gap: 56px; }
+.col { max-width: 680px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.15; }
+h1 { font-size: clamp(2.1rem, 5vw, 3.2rem); font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 1.55rem; font-weight: 700; }
+h3 { font-size: 1.05rem; font-weight: 600; font-family: var(--f-body); }
+p { margin: 0; }
+.stack { display: grid; gap: 14px; }
+.kicker { font: 500 0.8rem/1 var(--f-mono); color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; }
+.lede { font-size: 1.2rem; color: var(--muted); }
+.byline { font-size: 0.95rem; color: var(--muted); }
+.byline strong { color: var(--ink); font-weight: 600; }
+
+/* Team roster */
+.roster { display: flex; flex-wrap: wrap; gap: 10px; }
+.member { display: flex; align-items: center; gap: 10px; padding: 8px 14px 8px 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; font-size: 0.92rem; }
+.avatar { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font: 600 0.8rem var(--f-mono); background: var(--line); color: var(--ink); }
+.member.agent .avatar { background: var(--ink); color: var(--bg); }
+.member small { color: var(--muted); display: block; font-size: 0.78rem; line-height: 1.2; }
+
+/* Demo */
+.demo { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.demo-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.demo-head p { font-size: 0.85rem; color: var(--muted); }
+.tally { display: flex; gap: 8px; flex-wrap: wrap; }
+.demo-body { display: grid; grid-template-columns: minmax(260px, 1fr) 1.4fr; }
+.queue { list-style: none; margin: 0; padding: 0; border-right: 1px solid var(--line); }
+.queue li + li { border-top: 1px solid var(--line); }
+.queue button { all: unset; box-sizing: border-box; display: grid; gap: 6px; width: 100%; padding: 14px 20px; cursor: pointer; }
+.queue button:hover { background: var(--bg); }
+.queue button[aria-selected="true"] { background: var(--bg); box-shadow: inset 3px 0 0 var(--accent); }
+.queue button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.q-top { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+.q-src { font: 400 0.75rem var(--f-mono); color: var(--muted); }
+.q-text { font-size: 0.93rem; line-height: 1.4; }
+.pill { font: 500 0.72rem/1 var(--f-mono); padding: 5px 8px; border-radius: 999px; white-space: nowrap; }
+.pill.done { background: var(--ok-soft); color: var(--ok); }
+.pill.review { background: var(--accent-soft); color: var(--accent); }
+.pill.human { background: var(--crit-soft); color: var(--crit); }
+.detail { padding: 22px 24px; display: grid; gap: 18px; align-content: start; }
+.trace { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.trace li { display: grid; grid-template-columns: 92px 1fr; gap: 12px; font-size: 0.92rem; }
+.trace .step { font: 500 0.74rem/1.7 var(--f-mono); color: var(--muted); text-transform: uppercase; }
+.draft { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; font-size: 0.92rem; }
+.draft .label { font: 500 0.72rem var(--f-mono); color: var(--muted); text-transform: uppercase; display: block; margin-bottom: 6px; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.btn { font: 600 0.9rem var(--f-body); padding: 9px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.note { font-size: 0.85rem; color: var(--muted); }
+.demo-foot { padding: 12px 20px; border-top: 1px solid var(--line); font-size: 0.8rem; color: var(--muted); }
+
+/* Story */
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 22px; display: grid; gap: 10px; align-content: start; }
+.card p, .card li { font-size: 0.95rem; color: var(--muted); }
+.card ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.rules { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.rule { background: var(--surface); padding: 18px 20px; display: grid; gap: 4px; }
+.rule p { font-size: 0.93rem; color: var(--muted); }
+footer { font-size: 0.9rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 20px; }
+
+@media (max-width: 820px) {
+  .demo-body { grid-template-columns: 1fr; }
+  .queue { border-right: 0; border-bottom: 1px solid var(--line); }
+  .grid3, .rules { grid-template-columns: 1fr; }
+  .trace li { grid-template-columns: 1fr; gap: 2px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .detail { animation: fade 0.18s ease-out; }
+  @keyframes fade { from { opacity: 0.6; } to { opacity: 1; } }
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <header class="col stack">
+    <span class="kicker">Case study · Prototype</span>
+    <h1>Deco: an AI teammate on a People team</h1>
+    <p class="lede">I built an AI agent that works as a named member of my People team. It handles People Ops, payroll queries and inbox follow-ups, and it never makes a decision about a person on its own. It runs on top of a wider AI-native People stack I built, shown further down.</p>
+    <p class="byline">Built by <strong>Ahmet Kivrak</strong>, Director of People, Culture &amp; Workplace</p>
+  </header>
+
+  <section class="col stack" aria-labelledby="team-h">
+    <h2 id="team-h">The team, as it runs today</h2>
+    <p>Deco sits next to the humans on the team. It has its own Slack profile and a defined role, and it works through scoped connections to our HRIS and applicant tracking system.</p>
+    <div class="roster">
+      <div class="member"><span class="avatar">AK</span><span>Ahmet<small>Director, decides</small></span></div>
+      <div class="member"><span class="avatar">PT</span><span>People partners<small>Human, own relationships</small></span></div>
+      <div class="member agent"><span class="avatar">De</span><span>Deco<small>Agent · People Ops, payroll, triage</small></span></div>
+      <div class="member agent"><span class="avatar">Ai</span><span>People Assistant<small>Agent · policy Q&amp;A in Slack</small></span></div>
+    </div>
+  </section>
+
+  <section class="stack" aria-labelledby="demo-h">
+    <div class="col stack">
+      <h2 id="demo-h">Try it: a morning in Deco's queue</h2>
+      <p>Pick a request to see how Deco handled it. Routine work is closed out on its own. Anything that changes pay, contracts or someone's situation waits for a human.</p>
+    </div>
+    <div class="demo">
+      <div class="demo-head">
+        <p>Example requests, fictional and anonymised</p>
+        <div class="tally" id="tally" aria-live="polite"></div>
+      </div>
+      <div class="demo-body">
+        <ul class="queue" id="queue" role="listbox" aria-label="Requests"></ul>
+        <div class="detail" id="detail" aria-live="polite"></div>
+      </div>
+      <div class="demo-foot">Illustrative prototype. Real requests, names and systems are not shown.</div>
+    </div>
+  </section>
+
+  <section class="stack" aria-labelledby="story-h">
+    <h2 id="story-h" class="col">Why I built it, what changed, what was hard</h2>
+    <div class="grid3">
+      <article class="card">
+        <h3>Why</h3>
+        <p>A small People team at a scale-up spends much of its week on repeatable work: balance lookups, payroll questions, offboarding checklists, chasing replies. I wanted that capacity back for the human parts of the job.</p>
+        <p>I also wanted to test a bigger idea: that an AI-native People function treats agents as teammates with a role, scope and manager, not as a chatbot bolted onto a portal.</p>
+      </article>
+      <article class="card">
+        <h3>Impact so far</h3>
+        <ul>
+          <li>Routine requests get an answer in minutes instead of waiting in a shared inbox.</li>
+          <li>Follow-ups stop slipping, because chasing is Deco's job, not a sticky note.</li>
+          <li>The humans on the team review proposals rather than drafting from scratch.</li>
+          <li>It became the template for how we design further agents: role, scope, guardrails, reviewer.</li>
+        </ul>
+      </article>
+      <article class="card">
+        <h3>The hardest part</h3>
+        <p>The model was the easy bit. Drawing the line between <em>propose</em> and <em>act</em> was hard: which actions can run unattended, which need sign-off, and which must never be touched by an agent at all.</p>
+        <p>Getting that wrong in HR is costly: wrong pay, a mishandled grievance, a decision about a person made by software. Under the EU AI Act and GDPR Art. 22 that line is also a legal one.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="stack" aria-labelledby="stack-h">
+    <div class="col stack">
+      <h2 id="stack-h">What Deco runs on</h2>
+      <p>Deco is the newest piece of an AI-native People stack I built over the past year, mostly hands-on. Each piece came out of a real bottleneck.</p>
+    </div>
+    <div class="grid3">
+      <article class="card"><span class="kicker">Employee-facing</span><h3>People Assistant</h3><p>A Slack bot grounded in our policy wiki. Answers by country (DE, UK, US, CA), routes payroll questions to the right provider, and hard-escalates anything sensitive.</p></article>
+      <article class="card"><span class="kicker">Plumbing</span><h3>Custom HR system connectors</h3><p>MCP servers I wrote for our HRIS and applicant tracking system, so agents get the fields they need with scoped access, beyond what native connectors expose.</p></article>
+      <article class="card"><span class="kicker">Payroll</span><h3>Reconciliation agent</h3><p>Compares HR data with payroll exports across countries and flags mismatches before pay runs, for a human to resolve.</p></article>
+      <article class="card"><span class="kicker">Insight</span><h3>People analytics &amp; org planning</h3><p>Dashboards for headcount, attrition and org design, built with AI and fed from live HR data instead of monthly spreadsheets.</p></article>
+      <article class="card"><span class="kicker">Hiring</span><h3>Recruiting automation</h3><p>Hiring dashboards, automated pipeline steps and AI-assisted interview scorecards, with humans making every hiring call.</p></article>
+      <article class="card"><span class="kicker">Talent</span><h3>Talent framework, rebuilt</h3><p>Our 4-grid talent framework redesigned with AI support, so calibration starts from structured evidence.</p></article>
+    </div>
+  </section>
+
+  <section class="stack" aria-labelledby="rules-h">
+    <h2 id="rules-h" class="col">The operating rules</h2>
+    <div class="rules">
+      <div class="rule"><h3>AI proposes, humans decide</h3><p>Anything touching pay, contracts or an individual's situation is drafted, then approved by a person.</p></div>
+      <div class="rule"><h3>Hard escalation</h3><p>Grievances, health, conflict and anything sensitive go straight to a human. Deco does not draft a reply.</p></div>
+      <div class="rule"><h3>Least privilege</h3><p>Scoped, read-first access to each HR system. Write actions are explicit and logged.</p></div>
+      <div class="rule"><h3>Country-aware</h3><p>Answers follow the employee's jurisdiction and the right payroll route, not a single global policy.</p></div>
+    </div>
+  </section>
+
+  <footer class="col">Questions about how it works or how I'd build this elsewhere: happy to walk through it live.</footer>
+</main>
+
+<script>
+const items = [
+  { src: "Slack · Engineering", text: "How many vacation days do I have left this year?", status: "done",
+    trace: [["Classify", "Leave balance lookup, read-only"], ["Check", "Pulled balance from the HRIS, applied carry-over rule for the employee's country"], ["Act", "Replied directly in thread"]],
+    draft: "You have 11 days left for 2026, including 3 carried over from last year. Carried-over days expire on 31 March.",
+    note: "Closed without review. Read-only, low risk." },
+  { src: "Email · Sales", text: "My payslip is missing the overtime I worked in October.", status: "review",
+    trace: [["Classify", "Payroll correction, affects pay"], ["Check", "Matched approved overtime against the payroll export: 6.5 hours missing"], ["Propose", "Drafted a correction request to the payroll provider and a reply to the employee"]],
+    draft: "Hi, you're right: 6.5 approved overtime hours weren't included. We've requested a correction, and it will be paid with your November salary.",
+    note: "Changes someone's pay, so a person signs off." },
+  { src: "Slack · Product", text: "Can I work from Portugal for six weeks in January?", status: "review",
+    trace: [["Classify", "Temporary work abroad"], ["Check", "Policy allows up to 30 working days a year; request exceeds it. Tax and social-security check needed"], ["Propose", "Drafted reply explaining the limit and options"]],
+    draft: "The policy covers up to 30 working days abroad per year. Six weeks goes slightly beyond that, so a People partner will review options with you this week.",
+    note: "Exception to policy, so a person decides." },
+  { src: "HRIS · Offboarding", text: "Leaver ends on the 30th. Start the offboarding.", status: "done",
+    trace: [["Classify", "Standard offboarding"], ["Act", "Created checklist: equipment return, access removal, final payroll note, exit survey"], ["Follow up", "Scheduled reminders to IT and the manager"]],
+    draft: "Offboarding started. 7 tasks assigned, 2 reminders scheduled. I'll flag anything still open 3 days before the leaving date.",
+    note: "Closed without review. Follows an approved checklist." },
+  { src: "Slack · DM", text: "I'd like to talk to someone about how my manager is treating me.", status: "human",
+    trace: [["Classify", "Sensitive: employee relations"], ["Guardrail", "Hard escalation rule matched. No draft, no summary shared"], ["Route", "Handed to a People partner, confidential"]],
+    draft: "Thanks for reaching out. A People partner will contact you personally today. This conversation stays confidential.",
+    note: "Agent steps back. A human owns this from the first reply." },
+  { src: "Inbox · Vendor", text: "Benefits provider: renewal form still outstanding.", status: "done",
+    trace: [["Triage", "Admin, not urgent, deadline in 9 days"], ["Act", "Filed to the renewals tracker and pre-filled known fields"], ["Follow up", "Reminder set for 5 days before deadline"]],
+    draft: "Logged. Form is 80% pre-filled. Remaining: signature and headcount confirmation.",
+    note: "Closed without review. Admin only." }
+];
+const labels = { done: "Handled", review: "Needs approval", human: "Escalated" };
+let current = 1;
+const $q = document.getElementById("queue"), $d = document.getElementById("detail"), $t = document.getElementById("tally");
+
+function tally() {
+  const c = { done: 0, review: 0, human: 0 };
+  items.forEach(i => c[i.status]++);
+  $t.innerHTML = Object.keys(c).map(k => `<span class="pill ${k}">${c[k]} ${labels[k].toLowerCase()}</span>`).join("");
+}
+function renderQueue() {
+  $q.innerHTML = items.map((it, i) => `
+    <li><button id="req-${i}" role="option" aria-selected="${i === current}" data-i="${i}">
+      <span class="q-top"><span class="q-src">${it.src}</span><span class="pill ${it.status}">${labels[it.status]}</span></span>
+      <span class="q-text">${it.text}</span>
+    </button></li>`).join("");
+}
+function renderDetail() {
+  const it = items[current];
+  const actions = it.status === "review"
+    ? `<div class="actions"><button class="btn primary" id="approve">Approve and send</button><button class="btn" id="return">Send back to Deco</button></div>`
+    : it.approved ? `<p class="note">Approved by a human. Sent.</p>` : "";
+  $d.innerHTML = `
+    <h3>${it.text}</h3>
+    <ol class="trace">${it.trace.map(([s, d]) => `<li><span class="step">${s}</span><span>${d}</span></li>`).join("")}</ol>
+    <div class="draft"><span class="label">${it.status === "review" ? "Proposed reply" : "Reply"}</span>${it.draft}</div>
+    <p class="note">${it.note}</p>
+    ${actions}`;
+  const a = document.getElementById("approve"), r = document.getElementById("return");
+  if (a) a.onclick = () => { it.status = "done"; it.approved = true; it.note = "Approved by a human, then sent."; renderAll(); };
+  if (r) r.onclick = () => { it.note = "Sent back with a comment. Deco will revise the draft."; renderDetail(); };
+}
+function renderAll() { tally(); renderQueue(); renderDetail(); }
+$q.addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; current = +b.dataset.i; renderAll(); document.getElementById("req-" + current).focus(); });
+$q.addEventListener("keydown", e => {
+  if (!["ArrowDown", "ArrowUp"].includes(e.key)) return;
+  e.preventDefault();
+  current = (current + (e.key === "ArrowDown" ? 1 : items.length - 1)) % items.length;
+  renderAll(); document.getElementById("req-" + current).focus();
+});
+renderAll();
+</script>
+</body>
+</html>
